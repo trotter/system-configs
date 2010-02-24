@@ -24,11 +24,12 @@ module SystemConfigs
         instructions = file.lines.select { |l| l =~ /^#{INST_DELIMITER}/ }
         return if instructions.empty?
   
+        file.rewind
         data = file.lines.select { |l| l !~ /^#{INST_DELIMITER}/ }
         link_file   = take_from(instructions, "target").sub(/~/, "#{ENV['HOME']}")
-        target_file = @target_dir + File.basename(file.to_path).sub(/.source$/, '')
+        target_file = "%s/%s" % [@target_dir, File.basename(file.to_path).sub(/.source$/, '')]
 
-        File.open(target_file, "w") { |outfile| outfile.write data.join("\n") }
+        File.open(target_file, "w") { |outfile| outfile.write data.join }
 
         if File.exists?(link_file) && !File.symlink?(link_file)
           puts "Cannot symlink '#{link_file}', there is a file in its place."
@@ -42,8 +43,8 @@ module SystemConfigs
 end
 
 if __FILE__ == $0
-  source_dir = File.dirname(__FILE__) + "/../source"
-  target_dir = File.dirname(__FILE__) + "/../target"
+  source_dir = File.expand_path(File.dirname(__FILE__) + "/../source")
+  target_dir = File.expand_path(File.dirname(__FILE__) + "/../target")
   installer = SystemConfigs::Install.new(source_dir, target_dir)
   installer.run
 end

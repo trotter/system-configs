@@ -1,0 +1,7 @@
+##: target: ~/.gitconfig
+
+[user]
+	name = Trotter Cashion
+	email = cashion@gmail.com
+[core]
+	excludesfile = /Users/trotter/.gitignore
