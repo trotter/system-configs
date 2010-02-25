@@ -1,0 +1,11 @@
+##: target: ~/.vimrc
+
+set nocompatible
+set autoindent
+set smartindent
+set tabstop=2
+set shiftwidth=2
+
+set ruler
+set incsearch " Search for regexes as entered
+
