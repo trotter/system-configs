@@ -8,7 +8,24 @@ export PATH="/usr/local/git/bin:$PATH"
 # Local Gems
 export PATH="$HOME/.gem/ruby/1.8/bin/:$PATH"
 
+# ssh agent
+function init-agent () {
+  if ssh-add -l >/dev/null 2>&1; then
+    return 0
+  else
+    test -e ~/.agent.env && . ~/.agent.env
+    if ssh-add -l >/dev/null 2>&1; then
+      return 0
+    else
+      ssh-agent > ~/.agent.env
+      . ~/.agent.env
+      ssh-add $HOME/.ssh/*_rsa
+      return 0
+    fi
+  fi
+}
 
+init-agent
 
 # MUST BE AT THE END!!!
 # RVM (Ruby version manager) 
