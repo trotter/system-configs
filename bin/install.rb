@@ -1,12 +1,14 @@
+require 'fileutils'
+
 module SystemConfigs
   class Install
     INST_DELIMITER = "##:"
-  
+
     def initialize(source_dir, target_dir)
       @source_dir = source_dir
       @target_dir = target_dir
     end
-  
+
     def run
       Dir.glob("#@source_dir/*.source", File::FNM_DOTMATCH).each do |path|
         puts "processing #{path}"
@@ -16,7 +18,36 @@ module SystemConfigs
   
     def take_from(instructions, identifier)
       to_strip = /^#{INST_DELIMITER} *#{identifier}: */
-      instructions.detect { |l| l =~ to_strip }.gsub(to_strip, '').strip
+      instruction = instructions.detect { |l| l =~ to_strip }
+      instruction ? instruction.gsub(to_strip, '').strip : nil
+    end
+
+    def symlink(source, target)
+      if File.exists?(target) && !File.symlink?(target)
+        puts "Cannot symlink '#{target}', there is a file in its place."
+        return
+      end
+
+      File.symlink(source, target) unless File.symlink?(target)
+    end
+
+    def copy(source, destination, file)
+      middle_file = "%s/%s" % [@target_dir, File.basename(source).sub(/.source$/, '')]
+      file.rewind
+      data = file.lines.select { |l| l !~ /^#{INST_DELIMITER}/ }
+      File.open(middle_file, "w") { |outfile| outfile.write data.join }
+      symlink(middle_file, destination)
+    end
+
+    def copy_dir(source, destination, file)
+      middle_file = "%s/%s" % [@target_dir, source]
+      FileUtils.rm_r(middle_file, :force => true)
+      FileUtils.cp_r("#@source_dir/#{source}", middle_file)
+      symlink(middle_file, destination)
+    end
+
+    def clean_path(path)
+      path.sub(/~/, "#{ENV['HOME']}")
     end
   
     def process(path)
@@ -24,19 +55,12 @@ module SystemConfigs
         instructions = file.lines.select { |l| l =~ /^#{INST_DELIMITER}/ }
         return if instructions.empty?
   
-        file.rewind
-        data = file.lines.select { |l| l !~ /^#{INST_DELIMITER}/ }
-        link_file   = take_from(instructions, "target").sub(/~/, "#{ENV['HOME']}")
-        target_file = "%s/%s" % [@target_dir, File.basename(file.to_path).sub(/.source$/, '')]
-
-        File.open(target_file, "w") { |outfile| outfile.write data.join }
-
-        if File.exists?(link_file) && !File.symlink?(link_file)
-          puts "Cannot symlink '#{link_file}', there is a file in its place."
-          return
-        end
-  
-        File.symlink(target_file, link_file) unless File.symlink?(link_file)
+        target  = clean_path(take_from(instructions, "target"))
+        source  = clean_path(take_from(instructions, "source") || file.to_path)
+        command = take_from(instructions, "command") || "copy"
+        
+        puts "command=%s;target=%s; source=%s;" % [command, target, source]
+        send(command, source, target, file)
       end
     end
   end

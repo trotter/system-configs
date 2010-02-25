@@ -1,0 +1,5 @@
+##:
+##: command: copy_dir
+##: source: .vim
+##: target: ~/.vim
+##:
